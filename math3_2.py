@@ -1,5 +1,7 @@
 import itertools
 from typing import Tuple, Dict
+import matplotlib.pyplot as plt
+import numpy as np
 
 # 单元级CELL详细计算过程
 def cell_unit_optimization(max_workers: int = 48) -> Tuple[float, Dict]:
@@ -141,19 +143,15 @@ def print_detailed_result(structure: str, data: Dict):
     """统一化的结构化结果输出（全中文，修复键名错误）"""
     print(f"\n=== {structure} 详细结果 ===")
     
-    # 定义阶段名称映射（英文键名 -> 中文阶段名）
     stage_names = {"assembly": "组装", "test": "测试", "packaging": "包装"}
-    # 定义阶段键名映射（中文阶段名 -> 英文键名，用于数据访问）
-    stage_keys = {v: k for k, v in stage_names.items()}  # 自动反转stage_names
+    stage_keys = {v: k for k, v in stage_names.items()}  
     
-    # 打印总时间和瓶颈阶段
     if structure != '单元级CELL':
         bottleneck = ['组装', '测试', '包装'][data['times'].index(max(data['times']))]
         print(f"总时间: {data['total_time']:.2f}分钟（瓶颈阶段: {bottleneck}）")
     else:
         print(f"总时间: {data['total_time']:.2f}分钟")
     
-    # 打印详细数据
     if structure == '单元级CELL':
         print("阶段           A1人数/时间         A2人数/时间            阶段总时间")
         print("──────────────────────────────────────────────────────────────────────")
@@ -168,12 +166,10 @@ def print_detailed_result(structure: str, data: Dict):
         print("─────────────────────────────────────────────────")
         for stage in ['组装', '测试', '包装']:
             if structure == '直线型CELL':
-                # 直接使用中文阶段名映射到英文键名
                 workers = data[stage_keys[stage]]
                 process = "整体拆分"
                 time = data['times'][['组装', '测试', '包装'].index(stage)]
             else:
-                # 混联型CELL获取生产线配置
                 n, s = data[stage_keys[stage]]
                 workers = n * s
                 process = f"{n}条×{s}序"
@@ -181,15 +177,78 @@ def print_detailed_result(structure: str, data: Dict):
             
             print(f"{stage:<8} {workers:>3}人    {process:<12} {time:>8.2f}分钟")
 
+def visualize_results(unit_data, series_data, parallel_data):
+    """Visualization of results with English labels"""
+    fig, axs = plt.subplots(2, 2, figsize=(12, 10))
+    fig.suptitle("Visual Comparison of Production Line Optimization Results", fontsize=16)
+
+    # Total Production Time Comparison
+    axs[0, 0].bar(['Unit CELL', 'Series CELL', 'Parallel CELL'],
+                 [unit_data['total_time'], series_data['total_time'], parallel_data['total_time']],
+                 color=['#FF9999', '#66B2FF', '#99FF99'])
+    axs[0, 0].set_title("Total Production Time Comparison")
+    axs[0, 0].set_ylabel("Time (minutes)")
+    axs[0, 0].grid(axis='y', linestyle='--', alpha=0.7)
+
+    # Stage-wise Time Distribution
+    stages = ['Assembly', 'Test', 'Packaging']
+    unit_times = [
+        max(unit_data['assembly']['time_A1'], unit_data['assembly']['time_A2']),
+        max(unit_data['test']['time_A1'], unit_data['test']['time_A2']),
+        max(unit_data['packaging']['time_A1'], unit_data['packaging']['time_A2'])
+    ]
+    series_times = series_data['times']
+    parallel_times = parallel_data['times']
+
+    bar_width = 0.25
+    x = np.arange(len(stages))
+    axs[0, 1].bar(x - bar_width, unit_times, width=bar_width, label='Unit CELL', color='#FF9999')
+    axs[0, 1].bar(x, series_times, width=bar_width, label='Series CELL', color='#66B2FF')
+    axs[0, 1].bar(x + bar_width, parallel_times, width=bar_width, label='Parallel CELL', color='#99FF99')
+    axs[0, 1].set_title("Stage-wise Time Distribution")
+    axs[0, 1].set_ylabel("Time (minutes)")
+    axs[0, 1].set_xticks(x, stages)
+    axs[0, 1].legend()
+
+    # Worker Distribution Calculation
+    def get_worker_distribution(data, structure):
+        if structure == 'Unit CELL':
+            return [
+                data['assembly']['A1'] + data['assembly']['A2'],
+                data['test']['A1'] + data['test']['A2'],
+                data['packaging']['A1'] + data['packaging']['A2']
+            ]
+        else:
+            return [data['assembly'], data['test'], data['packaging']] if structure == 'Series CELL' \
+                else [data['assembly'][0]*data['assembly'][1], data['test'][0]*data['test'][1], data['packaging'][0]*data['packaging'][1]]
+
+    unit_workers = get_worker_distribution(unit_data, 'Unit CELL')
+    series_workers = get_worker_distribution(series_data, 'Series CELL')
+    parallel_workers = get_worker_distribution(parallel_data, 'Parallel CELL')
+
+    # Worker Distribution Pie Charts
+    axs[1, 0].pie(series_workers, labels=stages, autopct='%1.1f%%', startangle=90, colors=['#66B2FF', '#FF9999', '#99FF99'])
+    axs[1, 0].set_title("Worker Distribution - Series CELL")
+
+    axs[1, 1].pie(parallel_workers, labels=stages, autopct='%1.1f%%', startangle=90, colors=['#66B2FF', '#FF9999', '#99FF99'])
+    axs[1, 1].set_title("Worker Distribution - Parallel CELL")
+
+    plt.tight_layout()
+    plt.subplots_adjust(top=0.92)
+    plt.show()
+    
 if __name__ == "__main__":
     unit_time, unit_data = cell_unit_optimization()
     series_time, series_data = cell_series_optimization()
     parallel_time, parallel_data = cell_parallel_optimization()
-    
+
     print_detailed_result('单元级CELL', unit_data)
     print_detailed_result('直线型CELL', series_data)
     print_detailed_result('混联型CELL', parallel_data)
-    
+
+    # 生成可视化图表
+    visualize_results(unit_data, series_data, parallel_data)
+
     best_structure = '直线型CELL' if series_time <= parallel_time else '混联型CELL'
     best_time = min(series_time, parallel_time, unit_time)
     
