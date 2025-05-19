@@ -51,7 +51,6 @@ for n1 in worker_range:
 
 plt.figure(figsize=(18, 12))
 
-# 1. 工人分配效率图
 plt.subplot(2, 2, 1)
 n1_values = [a[0] for a in allocations]
 n2_values = [a[1] for a in allocations]
@@ -64,7 +63,6 @@ plt.title('Worker Allocation Efficiency Map\n(Color shows efficiency)')
 plt.legend()
 plt.grid(True)
 
-# 2. 各阶段产能对比
 plt.subplot(2, 2, 2)
 plt.plot([c[0] for c in capacities], label='Assembly Capacity', alpha=0.7)
 plt.plot([c[1] for c in capacities], label='Testing Capacity', alpha=0.7)
@@ -77,7 +75,6 @@ plt.title('Capacity Comparison Across Stages')
 plt.legend()
 plt.grid(True)
 
-# 3. 最优分配明细
 plt.subplot(2, 2, 3)
 stages = ['Assembly', 'Testing', 'Packaging']
 workers = [n1_opt, n2_opt, n3_opt]
@@ -96,7 +93,6 @@ for i, bar in enumerate(bars):
 
 plt.grid(True, axis='y')
 
-# 4. 效率分布
 plt.subplot(2, 2, 4)
 plt.hist(efficiencies, bins=30, edgecolor='black', alpha=0.7)
 plt.axvline(efficiency, color='r', linestyle='dashed', linewidth=2,

@@ -22,7 +22,7 @@ def simulate_production_capacity(N, s, T, k, total_time, num_simulations=10000):
     low = t_mean - c
     high = t_mean + c
     
-    # 仿真工位时间
+    # 工位时间
     process_times = np.random.uniform(low, high, size=(num_simulations, N, s))
     
     # 每条生产线的节拍(最慢工位时间)
@@ -34,7 +34,6 @@ def simulate_production_capacity(N, s, T, k, total_time, num_simulations=10000):
     # 总产能
     total_capacities = np.sum(line_capacities, axis=1) 
     
-    # 统计量
     return {
         'mean': np.mean(total_capacities),
         'std': np.std(total_capacities),

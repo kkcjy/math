@@ -113,7 +113,7 @@ def cell_parallel_optimization(max_workers: int = 48, min_processes: int = 2) ->
                 
                 for n_b, s_b in b_combinations:
                     c = max_workers - a - b
-                    if c < min_processes: continue  # 确保每条线至少2工序
+                    if c < min_processes: continue  
                     
                     c_combinations = [(n, c//n) for n in range(1, c+1) if c%n==0 and (c//n)>=min_processes]
                     if not c_combinations: continue
@@ -140,7 +140,6 @@ def cell_parallel_optimization(max_workers: int = 48, min_processes: int = 2) ->
     return min_total_time, best_config
 
 def print_detailed_result(structure: str, data: Dict):
-    """统一化的结构化结果输出（全中文，修复键名错误）"""
     print(f"\n=== {structure} 详细结果 ===")
     
     stage_names = {"assembly": "组装", "test": "测试", "packaging": "包装"}
@@ -178,11 +177,9 @@ def print_detailed_result(structure: str, data: Dict):
             print(f"{stage:<8} {workers:>3}人    {process:<12} {time:>8.2f}分钟")
 
 def visualize_results(unit_data, series_data, parallel_data):
-    """Visualization of results with English labels"""
     fig, axs = plt.subplots(2, 2, figsize=(12, 10))
     fig.suptitle("Visual Comparison of Production Line Optimization Results", fontsize=16)
 
-    # Total Production Time Comparison
     axs[0, 0].bar(['Unit CELL', 'Series CELL', 'Parallel CELL'],
                  [unit_data['total_time'], series_data['total_time'], parallel_data['total_time']],
                  color=['#FF9999', '#66B2FF', '#99FF99'])
@@ -190,7 +187,6 @@ def visualize_results(unit_data, series_data, parallel_data):
     axs[0, 0].set_ylabel("Time (minutes)")
     axs[0, 0].grid(axis='y', linestyle='--', alpha=0.7)
 
-    # Stage-wise Time Distribution
     stages = ['Assembly', 'Test', 'Packaging']
     unit_times = [
         max(unit_data['assembly']['time_A1'], unit_data['assembly']['time_A2']),
@@ -210,7 +206,6 @@ def visualize_results(unit_data, series_data, parallel_data):
     axs[0, 1].set_xticks(x, stages)
     axs[0, 1].legend()
 
-    # Worker Distribution Calculation
     def get_worker_distribution(data, structure):
         if structure == 'Unit CELL':
             return [
@@ -226,7 +221,6 @@ def visualize_results(unit_data, series_data, parallel_data):
     series_workers = get_worker_distribution(series_data, 'Series CELL')
     parallel_workers = get_worker_distribution(parallel_data, 'Parallel CELL')
 
-    # Worker Distribution Pie Charts
     axs[1, 0].pie(series_workers, labels=stages, autopct='%1.1f%%', startangle=90, colors=['#66B2FF', '#FF9999', '#99FF99'])
     axs[1, 0].set_title("Worker Distribution - Series CELL")
 
@@ -246,7 +240,6 @@ if __name__ == "__main__":
     print_detailed_result('直线型CELL', series_data)
     print_detailed_result('混联型CELL', parallel_data)
 
-    # 生成可视化图表
     visualize_results(unit_data, series_data, parallel_data)
 
     best_structure = '直线型CELL' if series_time <= parallel_time else '混联型CELL'
